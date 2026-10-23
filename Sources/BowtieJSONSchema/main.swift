@@ -7,7 +7,6 @@ func main() throws {
   log("Starting BowtieJSONSchema")
 
   let encoder = JSONEncoder()
-  encoder.keyEncodingStrategy = .convertToSnakeCase
   let decoder = JSONDecoder()
 
   var bowtieProcess = BowtieProcessor(encoder: encoder, decoder: decoder)

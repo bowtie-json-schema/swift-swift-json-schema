@@ -86,7 +86,13 @@ struct BowtieProcessor {
       .map { test in
         let instance = test.instance
         let result = schema.validate(instance)
-        return TestResult.executed(.init(valid: result.isValid))
+        guard run.output == "annotations" else {
+          return TestResult.executed(.init(valid: result.isValid))
+        }
+        // Annotations are only collected for successful evaluations.
+        let annotations =
+          result.isValid ? (result.annotations ?? []).map(BowtieAnnotation.init) : []
+        return TestResult.executed(.init(valid: result.isValid, annotations: annotations))
       }
 
     let runResult = RunResponse.result(.init(seq: identifier, results: testResults))

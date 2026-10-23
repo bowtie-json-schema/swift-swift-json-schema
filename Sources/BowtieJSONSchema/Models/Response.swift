@@ -26,6 +26,13 @@ struct StartResponse: Encodable {
     }()
     let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
     let languageVersion = swiftVersion
+
+    enum CodingKeys: String, CodingKey {
+      case language, name, version, dialects, homepage, issues, source
+      case documentation, os
+      case osVersion = "os_version"
+      case languageVersion = "language_version"
+    }
   }
 }
 
@@ -94,7 +101,7 @@ enum TestResult: Encodable {
   case executionError(ExecutionError)
 
   private enum CodingKeys: String, CodingKey {
-    case valid, skipped, message, errored, context
+    case valid, annotations, skipped, message, errored, context
   }
 
   func encode(to encoder: Encoder) throws {
@@ -103,6 +110,9 @@ enum TestResult: Encodable {
     switch self {
     case .executed(let executed):
       try container.encode(executed.valid, forKey: .valid)
+      if let annotations = executed.annotations {
+        try container.encode(annotations, forKey: .annotations)
+      }
     case .skipped(let skipped):
       try container.encode(skipped.skipped, forKey: .skipped)
       try container.encodeIfPresent(skipped.message, forKey: .message)
@@ -112,8 +122,14 @@ enum TestResult: Encodable {
     }
   }
 
-  struct Executed: Codable {
+  struct Executed: Encodable {
     let valid: Bool
+    let annotations: [BowtieAnnotation]?
+
+    init(valid: Bool, annotations: [BowtieAnnotation]? = nil) {
+      self.valid = valid
+      self.annotations = annotations
+    }
   }
 
   struct Skipped: Codable {
@@ -130,4 +146,18 @@ enum TestResult: Encodable {
 struct ErrorContext: Codable {
   let message: String?
   let traceback: String?
+}
+
+struct BowtieAnnotation: Encodable {
+  let keyword: String
+  let instanceLocation: String
+  let keywordLocation: String
+  let annotation: JSONValue
+
+  init(_ collected: AnyAnnotation) {
+    self.keyword = collected.keyword
+    self.instanceLocation = collected.instanceLocation.jsonPointerString
+    self.keywordLocation = "#" + collected.schemaLocation.jsonPointerString
+    self.annotation = collected.jsonValue
+  }
 }
