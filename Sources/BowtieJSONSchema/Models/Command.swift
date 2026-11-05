@@ -26,10 +26,12 @@ struct TestCase: Codable {
 struct Run: Decodable {
   let seq: JSONValue
   let testCase: TestCase
+  let output: String?
 
   private enum CodingKeys: String, CodingKey {
     case seq
     case testCase = "case"
+    case output
   }
 }
 
