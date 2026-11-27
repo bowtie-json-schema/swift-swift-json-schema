@@ -13,11 +13,19 @@ RUN SJS_VERSION=$(jq -r '.pins[]|select(.identity=="swift-json-schema")|.state.v
  && echo "swift-json-schema @ $SJS_VERSION, swift @ $SWIFT_VERSION" \
  && printf "let swiftVersion = \"$SWIFT_VERSION\"\nlet jsonSchemaVersion = \"$SJS_VERSION\"\n" > Sources/BowtieJSONSchema/Version.swift
 
-RUN swift build -c release
+RUN swift build -c release \
+ && BIN_PATH="$(swift build -c release --show-bin-path)" \
+ && mkdir /runtime \
+ && cp "$BIN_PATH/BowtieJSONSchema" /runtime/ \
+ && find "$BIN_PATH" -maxdepth 1 -type d \
+      \( -name '*.bundle' -o -name '*.resources' \) \
+      -exec cp -R {} /runtime/ \; \
+ && (test -d /runtime/swift-json-schema_JSONSchema.bundle \
+     || test -d /runtime/swift-json-schema_JSONSchema.resources)
 
 FROM swift:slim
 WORKDIR /app
-COPY --from=build /app/.build/release/BowtieJSONSchema .
-# Copy the resource bundle
-COPY --from=build /app/.build /app/.build
+COPY --from=build /runtime/ .
+COPY smoke-test.sh /tmp/smoke-test.sh
+RUN sh /tmp/smoke-test.sh && rm /tmp/smoke-test.sh
 CMD ["./BowtieJSONSchema"]
